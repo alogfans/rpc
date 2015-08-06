@@ -9,6 +9,8 @@ import java.util.Arrays;
  * Created by Alogfans on 2015/8/5.
  */
 public class ResponsePacket implements Serializable {
+    private static final long serialVersionUID = 6238589897120159526L;
+
     public Class<?> interfaceClass;
     public String version;
     public String method;

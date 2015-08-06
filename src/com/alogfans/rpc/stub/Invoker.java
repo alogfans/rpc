@@ -124,6 +124,10 @@ public class Invoker implements InvocationHandler {
         return result;
     }
 
+    public void asyncInvoke(String methodName) {
+        asyncInvoke(methodName, null);
+    }
+
     public void asyncInvoke(String methodName, AsyncBehavior asyncBehavior) {
         // TODO: Impl this
         try {

@@ -7,6 +7,8 @@ import java.lang.reflect.Method;
  * Created by Alogfans on 2015/8/1.
  */
 public class RequestPacket implements Serializable {
+    private static final long serialVersionUID = 6238589897120159526L;
+
     public String version;
     public Class<?> interfaceClass;
     public String method;

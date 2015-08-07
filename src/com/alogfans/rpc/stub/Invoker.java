@@ -1,6 +1,7 @@
 package com.alogfans.rpc.stub;
 
-import com.alogfans.rpc.async.AsyncBehavior;
+import com.alogfans.rpc.async.ResponseCallbackListener;
+import com.alogfans.rpc.async.ResponseFuture;
 import com.alogfans.rpc.control.RpcClient;
 import com.alogfans.rpc.hook.InvokerHook;
 import com.alogfans.rpc.marshal.RequestPacket;
@@ -11,7 +12,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -38,14 +41,14 @@ public class Invoker implements InvocationHandler {
             return this;
         }
 
-        public WaitChainObject setAsyncBehavior(AsyncBehavior asyncBehavior) {
-            this.asyncBehavior = asyncBehavior;
+        public WaitChainObject setResponseCallbackListener(ResponseCallbackListener responseCallbackListener) {
+            this.responseCallbackListener = responseCallbackListener;
             return this;
         }
 
         public boolean isBlocking;
         public ResponsePacket responsePacket; // valid only for blocking
-        public AsyncBehavior asyncBehavior;   // valid only for non-blocking
+        public ResponseCallbackListener responseCallbackListener;   // valid only for non-blocking
     }
 
     private CountDownLatch blockLatch = new CountDownLatch(1);
@@ -128,9 +131,20 @@ public class Invoker implements InvocationHandler {
         asyncInvoke(methodName, null);
     }
 
-    public void asyncInvoke(String methodName, AsyncBehavior asyncBehavior) {
-        // TODO: Impl this
+    public void cancelInvoke(String methodName) {
+        Iterator<RequestPacket> iterator = waitChainObjects.keySet().iterator();
+        while (iterator.hasNext()) {
+            RequestPacket requestPacket = iterator.next();
+            if (requestPacket.method.equals(methodName) && !waitChainObjects.get(requestPacket).isBlocking) {
+                // found async, stop listening it
+                waitChainObjects.remove(requestPacket);
+            }
+        }
+    }
+
+    public <T extends ResponseCallbackListener> void asyncInvoke(String methodName, T callbackListener) {
         try {
+
             Method method = interfaceClass.getMethod(methodName);
             RequestPacket requestPacket = new RequestPacket()
                     .setInterfaceClass(interfaceClass)
@@ -143,20 +157,11 @@ public class Invoker implements InvocationHandler {
 
             rpcClient.sendRequestPacket(requestPacket);
 
-            waitChainObjects.put(requestPacket, new WaitChainObject(false).setAsyncBehavior(asyncBehavior));
-        } catch (Exception e) {
-            asyncBehavior.onException(e);
-        }
-    }
+            waitChainObjects.put(requestPacket,
+                    new WaitChainObject(false).setResponseCallbackListener(callbackListener));
 
-    public void cancelInvoke(String methodName) {
-        Iterator<RequestPacket> iterator = waitChainObjects.keySet().iterator();
-        while (iterator.hasNext()) {
-            RequestPacket requestPacket = iterator.next();
-            if (requestPacket.method.equals(methodName) && !waitChainObjects.get(requestPacket).isBlocking) {
-                // found async, stop listening it
-                waitChainObjects.remove(requestPacket);
-            }
+        } catch (Exception e) {
+            callbackListener.onException(e);
         }
     }
 
@@ -165,7 +170,8 @@ public class Invoker implements InvocationHandler {
         while (iterator.hasNext()) {
             RequestPacket requestPacket = iterator.next();
             if (responsePacket.isSameSignature(requestPacket)) {
-                AsyncBehavior asyncBehavior = waitChainObjects.get(requestPacket).asyncBehavior;
+                ResponseCallbackListener responseCallbackListener =
+                        waitChainObjects.get(requestPacket).responseCallbackListener;
 
                 if (waitChainObjects.get(requestPacket).isBlocking) {
                     // Sync parsing here
@@ -173,14 +179,15 @@ public class Invoker implements InvocationHandler {
                             new WaitChainObject(true).setResponse(responsePacket));
                     blockLatch.countDown();
                     blockLatch = new CountDownLatch(1);
-                } else if (asyncBehavior != null) {
-                    asyncBehavior.onResponse(responsePacket.result);
+                } else if (responseCallbackListener != null) {
+                    responseCallbackListener.onResponse(responsePacket.result);
                     if (responsePacket.exception != null)
-                        asyncBehavior.onException(responsePacket.exception);
+                        responseCallbackListener.onException(responsePacket.exception);
                     waitChainObjects.remove(requestPacket);
                 }
                 return;
             }
         }
     }
+
 }

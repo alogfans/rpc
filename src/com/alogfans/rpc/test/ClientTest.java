@@ -1,6 +1,6 @@
 package com.alogfans.rpc.test;
 
-import com.alogfans.rpc.async.AsyncBehavior;
+import com.alogfans.rpc.async.ResponseCallbackListener;
 import com.alogfans.rpc.control.RpcClient;
 import com.alogfans.rpc.stub.Invoker;
 
@@ -20,10 +20,10 @@ public class ClientTest {
                 .setPort(10086)
                 .register(invoker);
 
-        AsyncBehavior asyncBehavior = new Behavior();
+        ResponseCallbackListener responseCallbackListener = new Behavior();
 
         rpcClient.establishConnection();
-        invoker.asyncInvoke("sayHello", asyncBehavior);
+        invoker.asyncInvoke("sayHello", responseCallbackListener);
 
         try {
             Thread.sleep(1000);

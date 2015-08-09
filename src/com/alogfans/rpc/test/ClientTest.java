@@ -4,6 +4,8 @@ import com.alogfans.rpc.async.ResponseCallbackListener;
 import com.alogfans.rpc.control.RpcClient;
 import com.alogfans.rpc.stub.Invoker;
 
+import java.util.Date;
+
 /**
  * Client test drive
  *
@@ -19,18 +21,20 @@ public class ClientTest {
                 .setHostname("127.0.0.1")
                 .setPort(10086)
                 .register(invoker);
-
-        ResponseCallbackListener responseCallbackListener = new Behavior();
-
         rpcClient.establishConnection();
-        invoker.asyncInvoke("sayHello", responseCallbackListener);
 
-        try {
-            Thread.sleep(1000);
-        } catch (Exception e) {
-            e.printStackTrace();
+        ISayHello sayHello = (ISayHello) invoker.getInstance();
+
+        int countHints = 0;
+
+        Date startTime = new Date();
+
+        while (countHints < 1000) {
+            sayHello.sayHello();
+            countHints++;
         }
 
+        System.out.println(new Date().getTime() - startTime.getTime());
         rpcClient.close();
     }
 }

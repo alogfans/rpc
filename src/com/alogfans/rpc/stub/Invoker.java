@@ -113,9 +113,6 @@ public class Invoker implements InvocationHandler {
         ResponsePacket responsePacket = waitChainObjects.get(requestPacket).responsePacket;
         waitChainObjects.remove(requestPacket);
 
-        if (responsePacket == null)
-            throw new RuntimeException("Timeout exceeded");
-
         result = responsePacket.result;
 
         if (invokerHook != null)

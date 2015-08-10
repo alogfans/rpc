@@ -29,8 +29,10 @@ public class ClientTest {
 
         Date startTime = new Date();
 
-        while (countHints < 1000) {
-            sayHello.sayHello();
+        // 10000 requests, 6512 ms (with blocking)
+        while (countHints < 100) {
+            //sayHello.sayHello();
+            invoker.asyncInvoke("sayHello");
             countHints++;
         }
 

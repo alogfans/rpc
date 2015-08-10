@@ -138,7 +138,11 @@ public class RpcServer {
             byteBuffer.put(marshalHeader);
             byteBuffer.put(marshalObject);
             byteBuffer.flip();
-            socketChannel.write(byteBuffer);
+
+            // If no connection now, please ignore it (usually in async calling)
+            if (socketChannel.isConnected()) {
+                socketChannel.write(byteBuffer);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }

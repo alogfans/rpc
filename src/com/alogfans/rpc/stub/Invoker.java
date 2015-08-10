@@ -108,7 +108,9 @@ public class Invoker implements InvocationHandler {
         rpcClient.sendRequestPacket(requestPacket);
 
         waitChainObjects.put(requestPacket, new WaitChainObject(true));
+
         blockLatch.await(rpcClient.getTimeout(), TimeUnit.MILLISECONDS);
+        blockLatch = new CountDownLatch(1);
 
         ResponsePacket responsePacket = waitChainObjects.get(requestPacket).responsePacket;
         waitChainObjects.remove(requestPacket);
@@ -175,7 +177,6 @@ public class Invoker implements InvocationHandler {
                     waitChainObjects.replace(requestPacket,
                             new WaitChainObject(true).setResponse(responsePacket));
                     blockLatch.countDown();
-                    blockLatch = new CountDownLatch(1);
                 } else if (responseCallbackListener != null) {
                     responseCallbackListener.onResponse(responsePacket.result);
                     if (responsePacket.exception != null)

@@ -30,7 +30,7 @@ public class ClientTest {
         Date startTime = new Date();
 
         // 10000 requests, 6512 ms (with blocking)
-        while (countHints < 100) {
+        while (countHints < 10000) {
             //sayHello.sayHello();
             invoker.asyncInvoke("sayHello");
             countHints++;

@@ -8,10 +8,7 @@ import com.alogfans.rpc.stub.Provider;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -140,9 +137,14 @@ public class RpcServer {
             byteBuffer.flip();
 
             // If no connection now, please ignore it (usually in async calling)
-            if (socketChannel.isConnected()) {
-                socketChannel.write(byteBuffer);
+            try {
+                if (socketChannel.isConnected()) {
+                    socketChannel.write(byteBuffer);
+                }
+            } catch (ClosedChannelException e) {
+                // please do nothing
             }
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -167,24 +169,43 @@ public class RpcServer {
 
         while (cursor < countBytes) {
             // TODO: Not considered with slitted packet!
-            byte[] maeshalHeader = new byte[Integer.BYTES];
-            byteBuffer.get(maeshalHeader);
-            int packetLength = MarshalHelper.bytesToInt32(maeshalHeader);
+            byte[] marshallBytes = readBytes(socketChannel, byteBuffer, 4);
+            int packetLength = MarshalHelper.bytesToInt32(marshallBytes);
 
-            byte[] marshalObject = new byte[packetLength];
+            byte[] marshallObject = readBytes(socketChannel, byteBuffer, packetLength);
             cursor += Integer.BYTES + packetLength;
 
-            byteBuffer.get(marshalObject);
             RequestPacket requestPacket = null;
 
             try {
-                requestPacket = (RequestPacket) MarshalHelper.byteToObject(marshalObject);
+                requestPacket = (RequestPacket) MarshalHelper.byteToObject(marshallObject);
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
 
             dispatchRequestPacket(socketChannel, requestPacket);
         }
+    }
+
+    private byte[] readBytes(SocketChannel socketChannel, ByteBuffer byteBuffer, int countBytes)  throws IOException {
+        byte[] result = new byte[countBytes];
+        int firstBytes = byteBuffer.limit() - byteBuffer.position();
+        if (firstBytes < countBytes) {
+            // need more content, first read it fully
+            byteBuffer.get(result, 0, firstBytes);
+
+            // read again
+            ByteBuffer tinyByteBuffer;
+            tinyByteBuffer = ByteBuffer.allocate(countBytes - firstBytes);
+            tinyByteBuffer.clear();
+            socketChannel.read(tinyByteBuffer);
+            tinyByteBuffer.flip();
+
+            tinyByteBuffer.get(result, firstBytes, countBytes - firstBytes);
+        } else {
+            byteBuffer.get(result);
+        }
+        return result;
     }
 
     private void dispatchRequestPacket(SocketChannel socketChannel, RequestPacket requestPacket) {

@@ -163,16 +163,16 @@ public class RpcClient {
 
         int cursor = 0;
         while (cursor < countBytes) {
-            // TODO: Not considered with split packet!
-            int packetLength = byteBuffer.getInt();
-            byte[] marshalObject = new byte[packetLength];
+            byte[] marshallBytes = readBytes(socketChannel, byteBuffer, 4);
+            int packetLength = MarshalHelper.bytesToInt32(marshallBytes);
+
+            byte[] marshallObject = readBytes(socketChannel, byteBuffer, packetLength);
             cursor += Integer.BYTES + packetLength;
 
-            byteBuffer.get(marshalObject);
             ResponsePacket responsePacket = null;
 
             try {
-                responsePacket = (ResponsePacket) MarshalHelper.byteToObject(marshalObject);
+                responsePacket = (ResponsePacket) MarshalHelper.byteToObject(marshallObject);
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
@@ -180,6 +180,29 @@ public class RpcClient {
             dispatchResponsePacket(responsePacket);
         }
     }
+
+
+    private byte[] readBytes(SocketChannel socketChannel, ByteBuffer byteBuffer, int countBytes)  throws IOException {
+        byte[] result = new byte[countBytes];
+        int firstBytes = byteBuffer.limit() - byteBuffer.position();
+        if (firstBytes < countBytes) {
+            // need more content, first read it fully
+            byteBuffer.get(result, 0, firstBytes);
+
+            // read again
+            ByteBuffer tinyByteBuffer;
+            tinyByteBuffer = ByteBuffer.allocate(countBytes - firstBytes);
+            tinyByteBuffer.clear();
+            socketChannel.read(tinyByteBuffer);
+            tinyByteBuffer.flip();
+
+            tinyByteBuffer.get(result, firstBytes, countBytes - firstBytes);
+        } else {
+            byteBuffer.get(result);
+        }
+        return result;
+    }
+
 
     private void dispatchResponsePacket(ResponsePacket responsePacket) {
         if (responsePacket == null)

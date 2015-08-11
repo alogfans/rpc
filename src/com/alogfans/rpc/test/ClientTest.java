@@ -29,7 +29,8 @@ public class ClientTest {
 
         Date startTime = new Date();
 
-        // 10000 requests, 6512 ms (with blocking)
+        // 10000 requests, 6512 ms (sync rpc)
+        // 10000 requests, 1191 ms (async without reply)
         while (countHints < 10000) {
             //sayHello.sayHello();
             invoker.asyncInvoke("sayHello");

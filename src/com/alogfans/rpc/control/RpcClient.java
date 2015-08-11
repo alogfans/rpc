@@ -13,6 +13,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
 /**
@@ -29,7 +30,7 @@ public class RpcClient {
     private int timeout;
 
     // all invokers we will listening to, for others will just ignore them.
-    private HashMap<Class<?>, Invoker> invokerHashMap;
+    private ConcurrentHashMap<Class<?>, Invoker> invokerHashMap;
 
     private SocketChannel socketChannel;
     private Selector selector;
@@ -37,7 +38,7 @@ public class RpcClient {
 
     public RpcClient() {
         timeout = Integer.MAX_VALUE;
-        invokerHashMap = new HashMap<>();
+        invokerHashMap = new ConcurrentHashMap<>();
     }
 
     public RpcClient setHostname(String hostname) {

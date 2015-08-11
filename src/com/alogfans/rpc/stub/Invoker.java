@@ -12,10 +12,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * Redirect methods for executing remotely.
@@ -52,10 +49,10 @@ public class Invoker implements InvocationHandler {
     }
 
     private CountDownLatch blockLatch = new CountDownLatch(1);
-    private HashMap<RequestPacket, WaitChainObject> waitChainObjects;
+    private ConcurrentHashMap<RequestPacket, WaitChainObject> waitChainObjects;
 
     public Invoker() {
-        waitChainObjects = new HashMap<>();
+        waitChainObjects = new ConcurrentHashMap<>();
     }
 
     public Invoker setInterfaceClass(Class<?> interfaceClass) {

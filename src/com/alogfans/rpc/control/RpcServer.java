@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The server that provides calling services. Several provided objected can be
@@ -26,7 +27,7 @@ public class RpcServer {
     private int timeout;
 
     // all provider we will listening to, for others will just ignore them.
-    private HashMap<Class<?>, Provider> rpcProviderHashMap;
+    private ConcurrentHashMap<Class<?>, Provider> rpcProviderHashMap;
 
     // NIO implementation related elements
     private ServerSocketChannel serverSocketChannel;
@@ -34,7 +35,7 @@ public class RpcServer {
 
     public RpcServer() {
         timeout = Integer.MAX_VALUE;
-        rpcProviderHashMap = new HashMap<>();
+        rpcProviderHashMap = new ConcurrentHashMap<>();
     }
 
     public RpcServer setPort(int port) {
@@ -141,8 +142,8 @@ public class RpcServer {
                 if (socketChannel.isConnected()) {
                     socketChannel.write(byteBuffer);
                 }
-            } catch (ClosedChannelException e) {
-                // please do nothing
+            } catch (IOException e) {
+                socketChannel.close();
             }
 
         } catch (IOException e) {
